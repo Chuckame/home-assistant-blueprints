@@ -1,0 +1,185 @@
+blueprint:
+  name: Philips Hue Smart button controller
+  description: Trigger actions when holding or clicking 1, 2 or 3 times on the philips hue smart button
+  domain: automation
+  author: Chuckame
+  url: https://github.com/Chuckame/home-assistant-blueprints
+  input:
+    button:
+      name: Hue Smart button
+      selector:
+        device:
+          filter:
+            - manufacturer: Philips
+              model: Hue smart button (8718699693985)
+    on_1_click:
+      name: Action done on first click
+      selector:
+        action:
+    on_2_clicks:
+      name: Action done on second click
+      selector:
+        action:
+    on_3_clicks:
+      name: Action done on third click (or more)
+      selector:
+        action:
+    on_hold_click:
+      name: Action done when holding the button
+      description: Also implied even if you clicked 2 times before holding the button.
+      selector:
+        action:
+max_exceeded: silent
+mode: single
+trigger:
+  - domain: mqtt
+    device_id: !input button
+    type: action
+    subtype: press
+    trigger: device
+action:
+  - alias: Attendre press/hold/on/off
+    wait_for_trigger:
+      - domain: mqtt
+        device_id: !input button
+        type: action
+        subtype: press
+        trigger: device
+      - domain: mqtt
+        device_id: !input button
+        type: action
+        subtype: hold
+        trigger: device
+      - domain: mqtt
+        device_id: !input button
+        type: action
+        subtype: "on"
+        trigger: device
+      - domain: mqtt
+        device_id: !input button
+        type: action
+        subtype: "off"
+        trigger: device
+    timeout:
+      hours: 0
+      minutes: 0
+      seconds: 1
+    continue_on_timeout: true
+  - choose:
+      - conditions:
+          - alias: Hold
+            condition: template
+            value_template: "{{ wait.trigger.payload == 'hold' }}"
+        sequence:
+          - sequence: !input on_hold_click
+          - stop: Hold
+      - conditions:
+          - alias: On/off/timeout
+            condition: template
+            value_template: "{{ wait.trigger.payload in ['on', 'off'] or not wait.completed }}"
+        sequence:
+          - sequence: !input on_1_click
+          - stop: 1 click
+        alias: On/off/timeout (1 clic) -> basculer lumière
+  - alias: Attendre press/hold/on/off
+    wait_for_trigger:
+      - domain: mqtt
+        device_id: !input button
+        type: action
+        subtype: press
+        trigger: device
+      - domain: mqtt
+        device_id: !input button
+        type: action
+        subtype: hold
+        trigger: device
+      - domain: mqtt
+        device_id: !input button
+        type: action
+        subtype: "on"
+        trigger: device
+      - domain: mqtt
+        device_id: !input button
+        type: action
+        subtype: "off"
+        trigger: device
+    timeout:
+      hours: 0
+      minutes: 0
+      seconds: 1
+    continue_on_timeout: true
+  - choose:
+      - conditions:
+          - alias: Hold
+            condition: template
+            value_template: "{{ wait.trigger.payload == 'hold' }}"
+        sequence:
+          - sequence: !input on_hold_click
+          - stop: Hold
+      - conditions:
+          - alias: On/off/timeout
+            condition: template
+            value_template: "{{ wait.trigger.payload in ['on', 'off'] or not wait.completed }}"
+        sequence:
+          - sequence: !input on_2_clicks
+          - stop: 2 clicks
+        alias: On/off/timeout (2nd click)
+  - alias: Attendre press/hold/on/off
+    wait_for_trigger:
+      - domain: mqtt
+        device_id: !input button
+        type: action
+        subtype: press
+        trigger: device
+      - domain: mqtt
+        device_id: !input button
+        type: action
+        subtype: hold
+        trigger: device
+      - domain: mqtt
+        device_id: !input button
+        type: action
+        subtype: "on"
+        trigger: device
+      - domain: mqtt
+        device_id: !input button
+        type: action
+        subtype: "off"
+        trigger: device
+    timeout:
+      hours: 0
+      minutes: 0
+      seconds: 1
+    continue_on_timeout: true
+  - choose:
+      - conditions:
+          - alias: Hold
+            condition: template
+            value_template: "{{ wait.trigger.payload == 'hold' }}"
+        sequence:
+          - sequence: !input on_hold_click
+          - stop: Hold
+      - conditions:
+          - alias: Press
+            condition: template
+            value_template: "{{ wait.trigger.payload == 'press' }}"
+        sequence:
+          - alias: Attendre on/off/timeout
+            wait_for_trigger:
+              - domain: mqtt
+                device_id: !input button
+                type: action
+                subtype: "on"
+                trigger: device
+              - domain: mqtt
+                device_id: !input button
+                type: action
+                subtype: "off"
+                trigger: device
+            timeout:
+              hours: 0
+              minutes: 0
+              seconds: 2
+            continue_on_timeout: true
+        alias: Press (4ème clic) -> on attend la fin du spam de clics
+  - sequence: !input on_3_clicks
