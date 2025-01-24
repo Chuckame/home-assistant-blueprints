@@ -3,6 +3,7 @@ blueprint:
   description: Trigger actions when holding or clicking 1, 2 or 3 times on the philips hue smart button
   domain: automation
   author: Chuckame
+  source_url: https://github.com/Chuckame/home-assistant-blueprints/edit/main/philips_hue_smart_button_controller.yaml
   input:
     button:
       name: Hue Smart button
